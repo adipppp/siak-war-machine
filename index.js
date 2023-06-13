@@ -21,13 +21,13 @@ async function main() {
     console.log();
   });
 
-  console.log('Press "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "x" to exit this program');
-  console.log("--------------------------------------------------------------------------------------------------------");
+  console.log('Press "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "c" to clear console, "x" to exit this program');
+  console.log("------------------------------------------------------------------------------------------------------------------------------");
+
+  let cursorLine = 0; // Cursor position counter on the y-axis
 
   rl.on("line", async (input) => {
-    process.stdout.moveCursor(input.length * -1, -1);
-    process.stdout.clearLine(0);
-    
+    cursorLine++;
     switch (input) {
       case "x":
         process.exit();
@@ -39,6 +39,13 @@ async function main() {
         break;
       case "r":
         await page.reload();
+        break;
+      case "c":
+        for (let i = cursorLine - 1; i >= 0; i--) {
+          process.stdout.moveCursor(0, -1);
+          process.stdout.clearLine(0);
+        }
+        cursorLine = 0;
         break;
     }
   });
