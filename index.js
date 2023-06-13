@@ -6,11 +6,11 @@ const { loginToSIAK } = require("./functions");
 main();
 
 async function main() {
-  const browser = await puppeteer.launch({
+  let browser = await puppeteer.launch({
     headless: false,
     executablePath: process.env.PATH_TO_CHROMIUM_BIN,
   });
-  const page = await browser.newPage();
+  let page = await browser.newPage();
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -27,26 +27,27 @@ async function main() {
   let cursorLine = 0; // Cursor position counter on the y-axis
 
   rl.on("line", async (input) => {
-    cursorLine++;
-    switch (input) {
-      case "x":
-        process.exit();
-      case "l":
-        await loginToSIAK(page);
-        break;
-      case "i":
-        await page.goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit");
-        break;
-      case "r":
-        await page.reload();
-        break;
-      case "c":
-        for (let i = cursorLine - 1; i >= 0; i--) {
-          process.stdout.moveCursor(0, -1);
-          process.stdout.clearLine(0);
-        }
-        cursorLine = 0;
-        break;
+    if (input === "x") process.exit();
+    else if (input === "c") {
+      for (let i = cursorLine - 1; i >= 0; i--) {
+        process.stdout.moveCursor(0, -1);
+        process.stdout.clearLine(0);
+      }
+      cursorLine = 0;
+      return;
     }
+
+    cursorLine++;
+
+    if (!browser.isConnected())
+      browser = await puppeteer.launch({
+        headless: false,
+        executablePath: process.env.PATH_TO_CHROMIUM_BIN
+      });
+    if (page.isClosed()) page = await browser.newPage();
+
+    if (input === "l") await loginToSIAK(page);
+    if (input === "i") await page.goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit");
+    if (input === "r") await page.reload();
   });
 }
