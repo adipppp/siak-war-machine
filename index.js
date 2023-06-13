@@ -8,7 +8,7 @@ main();
 async function main() {
   let browser = await puppeteer.launch({
     headless: false,
-    executablePath: process.env.PATH_TO_CHROMIUM_BIN,
+    executablePath: process.env.PATH_TO_CHROMIUM_EXE,
   });
   let page = await browser.newPage();
 
@@ -47,7 +47,7 @@ async function main() {
     if (page.isClosed()) page = await browser.newPage();
 
     if (input === "l") await loginToSIAK(page);
-    if (input === "i") await page.goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit");
-    if (input === "r") await page.reload();
+    else if (input === "i") await page.goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit");
+    else if (input === "r") await page.reload();
   });
 }
