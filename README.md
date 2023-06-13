@@ -3,6 +3,6 @@ jangan lupa run `npm install` di terminal/cmd, bikin file .env & write ke fileny
 
 ```dotenv
 PATH_TO_CHROMIUM_EXE=<path executable chromium>
-USERNAME=<username sso>
-PASSWORD=<password sso>
+USERNAME_SSO=<username sso>
+PASSWORD_SSO=<password sso>
 ```

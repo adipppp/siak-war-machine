@@ -5,12 +5,12 @@ module.exports = {
       await page.$eval(
         "#u",
         (u, username) => (u.value = username),
-        process.env.USERNAME
+        process.env.USERNAME_SSO
       );
       await page.$eval(
         "#login > form > p:nth-child(2) > input",
         (pwInput, password) => (pwInput.value = password),
-        process.env.PASSWORD
+        process.env.PASSWORD_SSO
       );
       await page.$eval("#submit > input[type=submit]", (loginButton) =>
         loginButton.click()

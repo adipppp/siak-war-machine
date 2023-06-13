@@ -16,10 +16,7 @@ async function main() {
     input: process.stdin,
     output: process.stdout,
   });
-  process.once("exit", () => {
-    rl.close();
-    console.log();
-  });
+  process.once("exit", () => rl.close());
 
   console.log('Press "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "c" to clear console, "x" to exit this program');
   console.log("------------------------------------------------------------------------------------------------------------------------------");
