@@ -18,24 +18,14 @@ async function main() {
   });
   process.once("exit", () => rl.close());
 
-  console.log('Press "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "c" to clear console, "x" to exit this program');
-  console.log("------------------------------------------------------------------------------------------------------------------------------");
-
-  let cursorLine = 0; // Cursor position counter on the y-axis
+  console.log('Press "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "x" to exit this program');
+  console.log("--------------------------------------------------------------------------------------------------------");
 
   rl.on("line", async (input) => {
+    process.stdout.moveCursor(0, -1);
+    process.stdout.clearLine(0);
+
     if (input === "x") process.exit();
-
-    cursorLine++;
-
-    if (input === "c") {
-      for (let i = cursorLine - 1; i >= 0; i--) {
-        process.stdout.moveCursor(0, -1);
-        process.stdout.clearLine(0);
-      }
-      cursorLine = 0;
-      return;
-    }
 
     if (!browser.isConnected())
       browser = await puppeteer.launch({
