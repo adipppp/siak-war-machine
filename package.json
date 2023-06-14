@@ -1,6 +1,6 @@
 {
   "name": "siak-war-machine",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,6 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.1.4",
-    "puppeteer-core": "^20.6.0"
+    "puppeteer-core": "^20.7.1"
   }
 }

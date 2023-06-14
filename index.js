@@ -25,7 +25,10 @@ async function main() {
 
   rl.on("line", async (input) => {
     if (input === "x") process.exit();
-    else if (input === "c") {
+
+    cursorLine++;
+
+    if (input === "c") {
       for (let i = cursorLine - 1; i >= 0; i--) {
         process.stdout.moveCursor(0, -1);
         process.stdout.clearLine(0);
@@ -34,17 +37,18 @@ async function main() {
       return;
     }
 
-    cursorLine++;
-
     if (!browser.isConnected())
       browser = await puppeteer.launch({
         headless: false,
-        executablePath: process.env.PATH_TO_CHROMIUM_BIN
+        executablePath: process.env.PATH_TO_CHROMIUM_EXE,
       });
     if (page.isClosed()) page = await browser.newPage();
 
-    if (input === "l") await loginToSIAK(page);
-    else if (input === "i") await page.goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit");
-    else if (input === "r") await page.reload();
+    if (input === "l") loginToSIAK(page);
+    else if (input === "i")
+      page
+        .goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit")
+        .catch(e => null);
+    else if (input === "r") page.reload();
   });
 }
