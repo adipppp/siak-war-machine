@@ -18,27 +18,46 @@ async function main() {
   });
   process.once("exit", () => rl.close());
 
-  console.log('Press "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "x" to exit this program');
+  console.log('Enter "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "x" to exit this program');
   console.log("--------------------------------------------------------------------------------------------------------");
 
-  rl.on("line", async (input) => {
+  const options = ["x", "l", "i", "r"];
+  let blocked = false; // Blocking algorithm
+
+  rl.on("line", async input => {
+    if (input === "x") process.exit();
+    
     process.stdout.moveCursor(0, -1);
     process.stdout.clearLine(0);
 
-    if (input === "x") process.exit();
+    if (!options.includes(input)) return;
 
-    if (!browser.isConnected())
+    if (blocked) return;
+    if (!browser.isConnected()) {
+      blocked = true;
       browser = await puppeteer.launch({
         headless: false,
         executablePath: process.env.PATH_TO_CHROMIUM_EXE,
       });
-    if (page.isClosed()) page = await browser.newPage();
+    }
+    if (page.isClosed()) {
+      blocked = true;
+      page = await browser.newPage();
+    }
+    blocked = false;
 
-    if (input === "l") loginToSIAK(page);
-    else if (input === "i")
-      page
-        .goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit")
-        .catch(e => null);
-    else if (input === "r") page.reload();
+    switch (input) {
+      case "l":
+        loginToSIAK(page);
+        break;
+      case "i":
+        page
+          .goto("https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit")
+          .catch(e => null);
+        break;
+      case "r":
+        page.reload();
+        break;
+    }
   });
 }
