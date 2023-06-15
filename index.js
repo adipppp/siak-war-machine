@@ -8,7 +8,7 @@ main();
 async function main() {
   let browser = await puppeteer.launch({
     headless: false,
-    executablePath: process.env.PATH_TO_CHROMIUM_EXE,
+    executablePath: process.env.PATH_TO_CHROME_EXE,
   });
   let page = await browser.newPage();
 
@@ -18,10 +18,10 @@ async function main() {
   });
   process.once("exit", () => rl.close());
 
-  console.log('Enter "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "x" to exit this program');
-  console.log("--------------------------------------------------------------------------------------------------------");
+  console.log('Enter "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "lg" to logout, "x" to exit this program');
+  console.log("------------------------------------------------------------------------------------------------------------------------");
 
-  const options = ["x", "l", "i", "r"];
+  const options = ["x", "l", "i", "r", "lg"];
   let blocked = false; // Blocking algorithm
 
   rl.on("line", async input => {
@@ -33,15 +33,14 @@ async function main() {
     if (!options.includes(input)) return;
 
     if (blocked) return;
+    blocked = true;
     if (!browser.isConnected()) {
-      blocked = true;
       browser = await puppeteer.launch({
         headless: false,
-        executablePath: process.env.PATH_TO_CHROMIUM_EXE,
+        executablePath: process.env.PATH_TO_CHROME_EXE,
       });
     }
     if (page.isClosed()) {
-      blocked = true;
       page = await browser.newPage();
     }
     blocked = false;
@@ -57,6 +56,11 @@ async function main() {
         break;
       case "r":
         page.reload();
+        break;
+      case "lg":
+        page
+          .goto("https://academic.ui.ac.id/main/Authentication/Logout")
+          .catch(e => null);
         break;
     }
   });
