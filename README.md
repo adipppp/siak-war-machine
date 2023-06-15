@@ -1,5 +1,5 @@
 # siak-war-machine
-Sebuah program yang dapat digunakan untuk melakukan login, navigasi ke page Isi/Ubah IRS, dan logout pada SIAK-NG dari CLI.
+Sebuah program yang dapat digunakan untuk melakukan login, navigasi ke page Isi/Ubah IRS, dan logout pada SIAK-NG melalui CLI.
 
 ## Prerequisites
 Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Prompt dan ikuti langkah-langkah berikut:
@@ -16,5 +16,5 @@ Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Promp
 
 3. Selesai
 
-## Menjalankan Bot
+## Menjalankan Program
 Cukup jalankan `npm run start` di root directory ini.
