@@ -3,37 +3,43 @@ const puppeteer = require("puppeteer-core");
 const readline = require("readline");
 const { loginToSIAK } = require("./functions");
 
-main();
-
 async function main() {
-  let browser = await puppeteer.launch({
-    headless: false,
-    executablePath: process.env.PATH_TO_CHROME_EXE,
-  });
-  let page = await browser.newPage();
-
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
   process.once("exit", () => rl.close());
+  
+  let browser = await puppeteer.launch({
+    headless: false,  
+    executablePath: process.env.PATH_TO_CHROME_EXE,
+  });
+  let page = (await browser.pages())[0];
 
   console.log('Enter "l" to login to SIAK-NG, "i" to navigate to IRS page, "r" to reload page, "lg" to logout, "x" to exit this program');
   console.log("------------------------------------------------------------------------------------------------------------------------");
 
-  const options = ["x", "l", "i", "r", "lg"];
-  let blocked = false; // Blocking algorithm
+  const options = new Set(["x", "l", "i", "r", "lg"]);
+  let blocked = false; // blocking algorithm
 
   rl.on("line", async input => {
-    if (input === "x") process.exit();
+    if (input === "x") {
+      process.exit();
+    }
     
     process.stdout.moveCursor(0, -1);
     process.stdout.clearLine(0);
 
-    if (!options.includes(input)) return;
+    if (!options.has(input)) {
+      return;
+    }
 
-    if (blocked) return;
+    if (blocked) {
+      return;
+    }
+
     blocked = true;
+
     if (!browser.isConnected()) {
       browser = await puppeteer.launch({
         headless: false,
@@ -41,8 +47,9 @@ async function main() {
       });
     }
     if (page.isClosed()) {
-      page = await browser.newPage();
+      page = (await browser.pages())[0];
     }
+
     blocked = false;
 
     switch (input) {
@@ -65,3 +72,5 @@ async function main() {
     }
   });
 }
+
+main();

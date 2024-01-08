@@ -1,5 +1,5 @@
 # siak-war-machine
-Sebuah program yang dapat digunakan untuk melakukan login, navigasi ke page Isi/Ubah IRS, dan logout pada SIAK-NG melalui CLI.
+Sebuah program yang dapat digunakan untuk melakukan login, navigasi ke page Isi/Ubah IRS, dan logout pada SIAK-NG melalui Command Line Interface.
 
 ## Prerequisites
 Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Prompt dan ikuti langkah-langkah berikut:
