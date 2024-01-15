@@ -13,7 +13,7 @@ async function main() {
   const options = new Set(["x", "l", "i", "r", "lg"]);
 
   let blockCmd = false; // io-blocking flags
-  let blockStdout = false;
+  let blockStdio = false;
 
   let browser = await puppeteer.launch({
     headless: false,  
@@ -63,14 +63,14 @@ async function main() {
 
     blockCmd = false;
 
-    if (!blockStdout) {
+    if (!blockStdio) {
       process.stdout.moveCursor(0, -2);
       process.stdout.clearLine(0);
       console.log("Status: Processing...");
-      process.stdout.moveCursor(0, -1);
+      process.stdout.moveCursor(0, 1);
     }
 
-    blockStdout = true;
+    blockStdio = true;
 
     switch (input) {
       case "l":
@@ -91,13 +91,14 @@ async function main() {
         break;
     }
 
-    if (blockStdout) {
+    if (blockStdio) {
+      process.stdout.moveCursor(0, -2)
       process.stdout.clearLine(0);
       console.log("Status: Ready");
       process.stdout.moveCursor(0, 1);
     }
 
-    blockStdout = false;
+    blockStdio = false;
   });
 }
 
