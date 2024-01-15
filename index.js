@@ -53,12 +53,17 @@ async function main() {
 
     if (!browser.isConnected()) {
       browser = await puppeteer.launch({
-        headless: false,
+        headless: false,  
         executablePath: process.env.PATH_TO_CHROME_EXE,
       });
     }
     if (page.isClosed()) {
-      page = (await browser.pages())[0];
+      const pages = await browser.pages();
+      if (pages.length > 0) {
+        page = pages[0];
+      } else {
+        page = await browser.newPage();
+      }
     }
 
     blockCmd = false;
