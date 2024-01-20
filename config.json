@@ -1,0 +1,34 @@
+{
+  "courses": [
+    {
+      "code": "CSCM603117",
+      "name": "Analisis Numerik",
+      "class": "A"
+    },
+    {
+      "code": "CSGE602070",
+      "name": "Basis Data",
+      "class": "E"
+    },
+    {
+      "code": "CSCM602223",
+      "name": "Pemrograman Lanjut",
+      "class": "A"
+    },
+    {
+      "code": "CSGE602024",
+      "name": "Sistem Interaksi",
+      "class": "F"
+    },
+    {
+      "code": "CSGE602013",
+      "name": "Statistika & Probabilitas",
+      "class": "E"
+    },
+    {
+      "code": "CSCM602241",
+      "name": "Teori Bahasa & Automata",
+      "class": "A"
+    }
+  ]
+}

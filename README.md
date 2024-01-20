@@ -14,7 +14,9 @@ Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Promp
     PASSWORD_SSO=<password sso>
     ```
 
-3. Selesai
+3. Sesuaikan `config.json` dengan mata kuliah yang ingin kamu ambil
+
+4. Selesai
 
 ## Menjalankan Program
 Cukup jalankan `npm run start` di root directory ini.
