@@ -1,5 +1,5 @@
 # siak-war-machine
-Sebuah program yang dapat digunakan untuk melakukan login, navigasi ke page Isi/Ubah IRS, dan logout pada SIAK-NG melalui Command Line Interface.
+Sebuah program yang dapat digunakan untuk melakukan login, mengisi form pada halaman Isi/Ubah IRS, dan logout dari SIAK-NG secara otomatis.
 
 ## Prerequisites
 Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Prompt dan ikuti langkah-langkah berikut:
@@ -9,7 +9,6 @@ Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Promp
 2. Buat file baru bernama `.env`, kemudian isi dengan format berikut:
 
     ```dotenv
-    PATH_TO_CHROME_EXE=<path executable chrome/chromium>
     USERNAME_SSO=<username sso>
     PASSWORD_SSO=<password sso>
     ```
