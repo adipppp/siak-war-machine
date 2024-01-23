@@ -6,9 +6,6 @@ module.exports = {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
-    const courses = JSON.parse(JSON.stringify(data.courses)); // deep copy
-
-    // get tokens for req body
     const res_1 = await new Promise((resolve, reject) => {
       const req = https.get(
         "https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit",
@@ -19,14 +16,21 @@ module.exports = {
     });
 
     let htmlString = "";
+
     res_1.on("data", (chunk) => htmlString += chunk.toString());
     await once(res_1, "end");
 
+    // get tokens
     const re = /<input +type *= *"hidden" *name *= *"tokens" *value *= *"([0-9]+)" *\/?>/i;
     const match = htmlString.match(re);
 
-    const tokens = match[1];
-    let reqBody = `tokens=${tokens}&`;
+    if (!match) {
+      throw new Error("tokens not found");
+    }
+
+    let reqBody = `tokens=${match[1]}&`;
+
+    const courses = data.courses;
     
     for (const course of courses) {
       if (!course.code) {
@@ -47,19 +51,17 @@ module.exports = {
         throw new Error("Pattern not found");
       }
 
-      course.credit = match[3]; // assign credit to courses
-
       const curriculum = match[1];
       const classId = match[2];
+      const credit = match[3];
 
       reqBody +=
         encodeURIComponent(`c[${course.code}_${curriculum}]`) +
         "=" +
-        encodeURIComponent(`${classId}-${course.credit}`) +
+        encodeURIComponent(`${classId}-${credit}`) +
         "&";
     }
 
-    // reqBody = reqBody.slice(0, -1); // remove '&' at the end
     reqBody += "comment=&submit=Simpan+IRS";
 
     const res_2 = await new Promise((resolve, reject) => {

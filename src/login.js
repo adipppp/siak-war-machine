@@ -33,6 +33,8 @@ module.exports = {
         case "siakng_cc":
           cookies.siakng_cc = result[2];
           break;
+        default:
+          throw new Error("An unidentified cookie has appeared!");
       }
     }
 
