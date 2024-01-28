@@ -1,7 +1,7 @@
 const https = require("https");
 
 module.exports = {
-  async logout(cookies) {
+  async changeRole(cookies) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
@@ -11,8 +11,12 @@ module.exports = {
 
     const res_1 = await new Promise((resolve, reject) => {
       const req = https.get(
-        "https://academic.ui.ac.id/main/Authentication/Logout",
-        { headers: { "Cookie": `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}` } },
+        "https://academic.ui.ac.id/main/Authentication/ChangeRole",
+        {
+          headers: {
+            "Cookie": `Mojavi=${mojaviCookie};siakng_cc=${siakngCookie}`,
+          },
+        },
         (res) => resolve(res)
       );
       req.on("error", (err) => reject(err));
@@ -20,5 +24,13 @@ module.exports = {
     });
 
     res_1.resume();
+
+    if (
+      Math.trunc(res_1.statusCode / 300) === 1 &&
+      res_1.headers.location &&
+      res_1.headers.location === "/main/Authentication/"
+    ) {
+      throw new Error("Session has expired");
+    }
   },
 };

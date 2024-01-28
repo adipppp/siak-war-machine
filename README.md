@@ -2,11 +2,11 @@
 Sebuah program yang dapat digunakan untuk melakukan login, mengisi form pada halaman Isi/Ubah IRS, dan logout dari SIAK-NG secara otomatis.
 
 ## Prerequisites
-Sebelum menjalankan program untuk pertama kalinya, buka Terminal / Command Prompt dan ikuti langkah-langkah berikut:
+Sebelum menjalankan program, lakukan langkah-langkah berikut:
 
 1. Jalankan `npm install` di root directory ini
 
-2. Buat file baru bernama `.env`, kemudian isi dengan format berikut:
+2. Buatlah file baru bernama `.env`, kemudian isi dengan format berikut:
 
     ```dotenv
     USERNAME_SSO=<username sso>
