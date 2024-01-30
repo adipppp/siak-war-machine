@@ -66,7 +66,7 @@ class FlowManager {
           this.#emitter.emit("login");
           break;
         default:
-          throw err;
+          console.error(err);
       }
       return;
     }
@@ -100,8 +100,8 @@ class FlowManager {
           this.#emitter.emit("changeRole");
           break;
         default:
+          console.error(err);
           this.#emitter.emit("logout");
-          throw err;
       }
       return;
     }
@@ -147,9 +147,10 @@ class FlowManager {
           this.#emitter.emit("scrapeCoursePlanEdit");
           break;
         default:
+          console.error(err);
           this.#emitter.emit("logout");
-          throw err;
       }
+      return;
     }
 
     console.log(`Done (${Date.now() - start} ms)`);
@@ -183,8 +184,8 @@ class FlowManager {
           this.#emitter.emit("saveCoursePlan");
           break;
         default:
+          console.error(err);
           this.#emitter.emit("logout");
-          throw err;
       }
       return;
     }
@@ -218,8 +219,8 @@ class FlowManager {
           this.#emitter.emit("doneCoursePlan");
           break;
         default:
+          console.error(err);
           this.#emitter.emit("logout");
-          throw err;
       }
       return;
     }
@@ -244,6 +245,23 @@ class FlowManager {
   }
 
   #handleFinish() {
+    this.#removeListeners();
+    this.#progress = "finish";
+    this.#isRunning = false;
+  }
+
+  #attachListeners() {
+    this.#emitter.on("getConfig", this.#handleGetConfigBound);
+    this.#emitter.on("login", this.#handleLoginBound);
+    this.#emitter.on("changeRole", this.#handleChangeRoleBound);
+    this.#emitter.on("scrapeCoursePlanEdit", this.#handleScrapeCoursePlanEditBound);
+    this.#emitter.on("saveCoursePlan", this.#handleSaveCoursePlanBound);
+    this.#emitter.on("doneCoursePlan", this.#handleDoneCoursePlanBound);
+    this.#emitter.on("logout", this.#handleLogoutBound);
+    this.#emitter.on("finish", this.#handleFinishBound);
+  }
+
+  #removeListeners() {
     this.#emitter.off("getConfig", this.#handleGetConfigBound);
     this.#emitter.off("login", this.#handleLoginBound);
     this.#emitter.off("changeRole", this.#handleChangeRoleBound);
@@ -252,9 +270,6 @@ class FlowManager {
     this.#emitter.off("doneCoursePlan", this.#handleDoneCoursePlanBound);
     this.#emitter.off("logout", this.#handleLogoutBound);
     this.#emitter.off("finish", this.#handleFinishBound);
-
-    this.#progress = "finish";
-    this.#isRunning = false;
   }
 
   async run() {
@@ -271,14 +286,7 @@ class FlowManager {
       throw new Error("Environment variable $USERNAME_SSO or $PASSWORD_SSO not found");
     }
 
-    this.#emitter.on("getConfig", this.#handleGetConfigBound);
-    this.#emitter.on("login", this.#handleLoginBound);
-    this.#emitter.on("changeRole", this.#handleChangeRoleBound);
-    this.#emitter.on("scrapeCoursePlanEdit", this.#handleScrapeCoursePlanEditBound);
-    this.#emitter.on("saveCoursePlan", this.#handleSaveCoursePlanBound);
-    this.#emitter.on("doneCoursePlan", this.#handleDoneCoursePlanBound);
-    this.#emitter.on("logout", this.#handleLogoutBound);
-    this.#emitter.on("finish", this.#handleFinishBound);
+    this.#attachListeners();
 
     this.#emitter.emit("getConfig");
   }
