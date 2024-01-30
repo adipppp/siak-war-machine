@@ -7,16 +7,35 @@ const { logout } = require("./functions/logout");
 const { saveCoursePlan } = require("./functions/saveCoursePlan");
 const { scrapeCoursePlanEdit } = require("./functions/scrapeCoursePlanEdit");
 
-class FlowManager extends EventEmitter {
+class FlowManager {
+  #emitter;
   #configData;
   #cookies;
   #reqBody;
   #progress;
   #isRunning;
 
+  #handleGetConfigBound;
+  #handleLoginBound;
+  #handleChangeRoleBound;
+  #handleScrapeCoursePlanEditBound;
+  #handleSaveCoursePlanBound;
+  #handleDoneCoursePlanBound;
+  #handleLogoutBound;
+  #handleFinishBound;
+
   constructor() {
-    super();
+    this.#emitter = new EventEmitter();
     this.#isRunning = false;
+
+    this.#handleGetConfigBound = this.#handleGetConfig.bind(this);
+    this.#handleLoginBound = this.#handleLogin.bind(this);
+    this.#handleChangeRoleBound = this.#handleChangeRole.bind(this);
+    this.#handleScrapeCoursePlanEditBound = this.#handleScrapeCoursePlanEdit.bind(this);
+    this.#handleSaveCoursePlanBound = this.#handleSaveCoursePlan.bind(this);
+    this.#handleDoneCoursePlanBound = this.#handleDoneCoursePlan.bind(this);
+    this.#handleLogoutBound = this.#handleLogout.bind(this);
+    this.#handleFinishBound = this.#handleFinish.bind(this);
   }
 
   async #handleGetConfig() {
@@ -29,7 +48,7 @@ class FlowManager extends EventEmitter {
     console.log(`Done (${Date.now() - start} ms)`);
 
     this.#progress = "getConfig";
-    this.emit("login");
+    this.#emitter.emit("login");
   }
 
   async #handleLogin() {
@@ -44,7 +63,7 @@ class FlowManager extends EventEmitter {
         case "Request timed out":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         default:
           throw err;
@@ -55,7 +74,7 @@ class FlowManager extends EventEmitter {
     console.log(`Done (${Date.now() - start} ms)`);
 
     this.#progress = "login";
-    this.emit("changeRole");
+    this.#emitter.emit("changeRole");
   }
 
   async #handleChangeRole() {
@@ -68,20 +87,20 @@ class FlowManager extends EventEmitter {
         case "Mojavi or siakng_cc cookie not found":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Session has expired":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Request timed out":
           console.error(err);
           console.log("Reattempting to change role...");
-          this.emit("changeRole");
+          this.#emitter.emit("changeRole");
           break;
         default:
-          this.emit("logout");
+          this.#emitter.emit("logout");
           throw err;
       }
       return;
@@ -96,10 +115,10 @@ class FlowManager extends EventEmitter {
     ) {
       const before = this.#progress;
       this.#progress = "changeRole";
-      this.emit(before);
+      this.#emitter.emit(before);
     } else {
       this.#progress = "changeRole";
-      this.emit("scrapeCoursePlanEdit");
+      this.#emitter.emit("scrapeCoursePlanEdit");
     }
   }
 
@@ -115,20 +134,20 @@ class FlowManager extends EventEmitter {
         case "Mojavi or siakng_cc cookie not found":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Session has expired":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Request timed out":
           console.error(err);
           console.log("Reattempting to send requests...");
-          this.emit("scrapeCoursePlanEdit");
+          this.#emitter.emit("scrapeCoursePlanEdit");
           break;
         default:
-          this.emit("logout");
+          this.#emitter.emit("logout");
           throw err;
       }
     }
@@ -136,7 +155,7 @@ class FlowManager extends EventEmitter {
     console.log(`Done (${Date.now() - start} ms)`);
 
     this.#progress = "scrapeCoursePlanEdit";
-    this.emit("saveCoursePlan");
+    this.#emitter.emit("saveCoursePlan");
   }
 
   async #handleSaveCoursePlan() {
@@ -151,20 +170,20 @@ class FlowManager extends EventEmitter {
         case "Mojavi or siakng_cc cookie not found":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Session has expired":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Request timed out":
           console.error(err);
           console.log("Reattempting to save course plan...");
-          this.emit("saveCoursePlan");
+          this.#emitter.emit("saveCoursePlan");
           break;
         default:
-          this.emit("logout");
+          this.#emitter.emit("logout");
           throw err;
       }
       return;
@@ -173,7 +192,7 @@ class FlowManager extends EventEmitter {
     console.log(`Done (${Date.now() - start} ms)`);
 
     this.#progress = "saveCoursePlan";
-    this.emit("doneCoursePlan");
+    this.#emitter.emit("doneCoursePlan");
   }
 
   async #handleDoneCoursePlan() {
@@ -186,20 +205,20 @@ class FlowManager extends EventEmitter {
         case "Mojavi or siakng_cc cookie not found":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Session has expired":
           console.error(err);
           console.log("Reattempting to log in...");
-          this.emit("login");
+          this.#emitter.emit("login");
           break;
         case "Request timed out":
           console.error(err);
           console.log("Reattempting to send request...");
-          this.emit("doneCoursePlan");
+          this.#emitter.emit("doneCoursePlan");
           break;
         default:
-          this.emit("logout");
+          this.#emitter.emit("logout");
           throw err;
       }
       return;
@@ -208,7 +227,7 @@ class FlowManager extends EventEmitter {
     console.log(`Done (${Date.now() - start} ms)`);
 
     this.#progress = "doneCoursePlan";
-    this.emit("logout");
+    this.#emitter.emit("logout");
   }
 
   async #handleLogout() {
@@ -221,18 +240,18 @@ class FlowManager extends EventEmitter {
     console.log(`Done (${Date.now() - start} ms)`);
     
     this.#progress = "logout";
-    this.emit("finish");
+    this.#emitter.emit("finish");
   }
 
   #handleFinish() {
-    this.off("getConfig", this.#handleGetConfig);
-    this.off("login", this.#handleLogin);
-    this.off("changeRole", this.#handleChangeRole);
-    this.off("scrapeCoursePlanEdit", this.#handleScrapeCoursePlanEdit);
-    this.off("saveCoursePlan", this.#handleSaveCoursePlan);
-    this.off("doneCoursePlan", this.#handleDoneCoursePlan);
-    this.off("logout", this.#handleLogout);
-    this.off("finish", this.#handleFinish);
+    this.#emitter.off("getConfig", this.#handleGetConfigBound);
+    this.#emitter.off("login", this.#handleLoginBound);
+    this.#emitter.off("changeRole", this.#handleChangeRoleBound);
+    this.#emitter.off("scrapeCoursePlanEdit", this.#handleScrapeCoursePlanEditBound);
+    this.#emitter.off("saveCoursePlan", this.#handleSaveCoursePlanBound);
+    this.#emitter.off("doneCoursePlan", this.#handleDoneCoursePlanBound);
+    this.#emitter.off("logout", this.#handleLogoutBound);
+    this.#emitter.off("finish", this.#handleFinishBound);
 
     this.#progress = "finish";
     this.#isRunning = false;
@@ -241,24 +260,27 @@ class FlowManager extends EventEmitter {
   async run() {
     if (this.#isRunning) return;
 
-    this.#progress = null;
-
     this.#isRunning = true;
+    
+    this.#configData = null;
+    this.#cookies = null;
+    this.#reqBody = null;
+    this.#progress = null;
 
     if (!process.env.USERNAME_SSO || !process.env.PASSWORD_SSO) {
       throw new Error("Environment variable $USERNAME_SSO or $PASSWORD_SSO not found");
     }
 
-    this.on("getConfig", this.#handleGetConfig);
-    this.on("login", this.#handleLogin);
-    this.on("changeRole", this.#handleChangeRole);
-    this.on("scrapeCoursePlanEdit", this.#handleScrapeCoursePlanEdit);
-    this.on("saveCoursePlan", this.#handleSaveCoursePlan);
-    this.on("doneCoursePlan", this.#handleDoneCoursePlan);
-    this.on("logout", this.#handleLogout);
-    this.on("finish", this.#handleFinish);
+    this.#emitter.on("getConfig", this.#handleGetConfigBound);
+    this.#emitter.on("login", this.#handleLoginBound);
+    this.#emitter.on("changeRole", this.#handleChangeRoleBound);
+    this.#emitter.on("scrapeCoursePlanEdit", this.#handleScrapeCoursePlanEditBound);
+    this.#emitter.on("saveCoursePlan", this.#handleSaveCoursePlanBound);
+    this.#emitter.on("doneCoursePlan", this.#handleDoneCoursePlanBound);
+    this.#emitter.on("logout", this.#handleLogoutBound);
+    this.#emitter.on("finish", this.#handleFinishBound);
 
-    this.emit("getConfig");
+    this.#emitter.emit("getConfig");
   }
 }
 
