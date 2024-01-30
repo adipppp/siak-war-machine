@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports = {
   async getConfig() {
-    const filePath = path.join(__dirname, "..", "config.json");
+    const filePath = path.join(process.cwd(), "config.json");
     const data = await fs.readFile(filePath);
 
     const courses = JSON.parse(data).courses;
