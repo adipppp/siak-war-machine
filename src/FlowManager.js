@@ -23,6 +23,7 @@ class FlowManager {
   #handleDoneCoursePlanBound;
   #handleLogoutBound;
   #handleFinishBound;
+  #handleErrorBound;
 
   constructor() {
     this.#emitter = new EventEmitter();
@@ -36,6 +37,9 @@ class FlowManager {
     this.#handleDoneCoursePlanBound = this.#handleDoneCoursePlan.bind(this);
     this.#handleLogoutBound = this.#handleLogout.bind(this);
     this.#handleFinishBound = this.#handleFinish.bind(this);
+    this.#handleErrorBound = this.#handleError.bind(this);
+
+    this.#attachListeners();
   }
 
   async #handleGetConfig() {
@@ -43,7 +47,12 @@ class FlowManager {
     
     console.log("Reading config.json...");
 
-    this.#configData = await getConfig();
+    try {
+      this.#configData = await getConfig();
+    } catch (err) {
+      this.#emitter.emit("error", err);
+      return;
+    }
 
     console.log(`Done (${Date.now() - start} ms)`);
 
@@ -66,7 +75,7 @@ class FlowManager {
           this.#emitter.emit("login");
           break;
         default:
-          console.error(err);
+          this.#emitter.emit("error", err);
       }
       return;
     }
@@ -100,8 +109,7 @@ class FlowManager {
           this.#emitter.emit("changeRole");
           break;
         default:
-          console.error(err);
-          this.#emitter.emit("logout");
+          this.#emitter.emit("error", err);
       }
       return;
     }
@@ -147,8 +155,7 @@ class FlowManager {
           this.#emitter.emit("scrapeCoursePlanEdit");
           break;
         default:
-          console.error(err);
-          this.#emitter.emit("logout");
+          this.#emitter.emit("error", err);
       }
       return;
     }
@@ -184,8 +191,7 @@ class FlowManager {
           this.#emitter.emit("saveCoursePlan");
           break;
         default:
-          console.error(err);
-          this.#emitter.emit("logout");
+          this.#emitter.emit("error", err);
       }
       return;
     }
@@ -219,8 +225,7 @@ class FlowManager {
           this.#emitter.emit("doneCoursePlan");
           break;
         default:
-          console.error(err);
-          this.#emitter.emit("logout");
+          this.#emitter.emit("error", err);
       }
       return;
     }
@@ -231,7 +236,7 @@ class FlowManager {
     this.#emitter.emit("logout");
   }
 
-  async #handleLogout() {
+  async #handleLogout(err) {
     const start = Date.now();
     
     console.log("Logging out...");
@@ -239,6 +244,8 @@ class FlowManager {
     await logout(this.#cookies);
 
     console.log(`Done (${Date.now() - start} ms)`);
+
+    if (err) return;
     
     this.#progress = "logout";
     this.#emitter.emit("finish");
@@ -250,6 +257,14 @@ class FlowManager {
     this.#isRunning = false;
   }
 
+  #handleError(err) {
+    if (this.#progress !== "getConfig") {
+      this.#emitter.emit("logout", err);
+    }
+    this.#isRunning = false;
+    console.error(err);
+  }
+
   #attachListeners() {
     this.#emitter.on("getConfig", this.#handleGetConfigBound);
     this.#emitter.on("login", this.#handleLoginBound);
@@ -259,6 +274,7 @@ class FlowManager {
     this.#emitter.on("doneCoursePlan", this.#handleDoneCoursePlanBound);
     this.#emitter.on("logout", this.#handleLogoutBound);
     this.#emitter.on("finish", this.#handleFinishBound);
+    this.#emitter.on("error", this.#handleErrorBound);
   }
 
   #removeListeners() {
@@ -270,6 +286,7 @@ class FlowManager {
     this.#emitter.off("doneCoursePlan", this.#handleDoneCoursePlanBound);
     this.#emitter.off("logout", this.#handleLogoutBound);
     this.#emitter.off("finish", this.#handleFinishBound);
+    this.#emitter.off("error", this.#handleErrorBound);
   }
 
   async run() {
@@ -285,8 +302,6 @@ class FlowManager {
     if (!process.env.USERNAME_SSO || !process.env.PASSWORD_SSO) {
       throw new Error("Environment variable $USERNAME_SSO or $PASSWORD_SSO not found");
     }
-
-    this.#attachListeners();
 
     this.#emitter.emit("getConfig");
   }
