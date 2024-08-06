@@ -1,8 +1,8 @@
 require("dotenv").config();
-const { FlowManager } = require("./src/FlowManager");
+const { SiakWarMachine } = require("./src/SiakWarMachine");
 
-async function main() {
-  await new FlowManager().run();
+function main() {
+    new SiakWarMachine().run();
 }
 
 main();
