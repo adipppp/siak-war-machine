@@ -264,7 +264,7 @@ class SiakWarMachine {
     }
 
     #handleError(err) {
-        if (this.#progress !== "getConfig") {
+        if (this.#progress !== "getConfig" && this.#progress !== null) {
             this.#emitter.emit("logout", err);
         }
         this.#isRunning = false;
