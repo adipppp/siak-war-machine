@@ -1,16 +1,19 @@
 {
-  "name": "siak-war-machine",
-  "version": "1.1.9",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "adipppp",
-  "license": "ISC",
-  "dependencies": {
-    "dotenv": "^16.4.5"
-  }
+    "name": "siak-war-machine",
+    "version": "1.1.9",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "adipppp",
+    "license": "ISC",
+    "dependencies": {
+        "dotenv": "^16.4.5"
+    },
+    "devDependencies": {
+        "cross-env": "^7.0.3"
+    }
 }
