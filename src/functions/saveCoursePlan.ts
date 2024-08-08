@@ -1,7 +1,9 @@
-const https = require("https");
-const { sessionHasExpired } = require("./sessionHasExpired");
+import { IncomingMessage } from "http";
+import https from "https";
+import { sessionHasExpired } from "./sessionHasExpired";
+import { Cookies } from "../types";
 
-async function saveCoursePlan(cookies, reqBody) {
+export async function saveCoursePlan(cookies: Cookies, reqBody: string) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
@@ -9,7 +11,7 @@ async function saveCoursePlan(cookies, reqBody) {
         throw new Error("Mojavi or siakng_cc cookie not found");
     }
 
-    const res_1 = await new Promise((resolve, reject) => {
+    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
         const req = https.request(
             "https://academic.ui.ac.id/main/CoursePlan/CoursePlanSave",
             {
@@ -33,5 +35,3 @@ async function saveCoursePlan(cookies, reqBody) {
         throw new Error("Session has expired");
     }
 }
-
-module.exports = { saveCoursePlan };

@@ -1,8 +1,13 @@
-const { once } = require("events");
-const https = require("https");
-const { sessionHasExpired } = require("./sessionHasExpired");
+import { once } from "events";
+import { IncomingMessage } from "http";
+import https from "https";
+import { sessionHasExpired } from "./sessionHasExpired";
+import { Cookies, Course } from "../types";
 
-async function scrapeCoursePlanEdit(cookies, courses) {
+export async function scrapeCoursePlanEdit(
+    cookies: Cookies,
+    courses: Course[]
+) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
@@ -10,7 +15,7 @@ async function scrapeCoursePlanEdit(cookies, courses) {
         throw new Error("Mojavi or siakng_cc cookie not found");
     }
 
-    const res_1 = await new Promise((resolve, reject) => {
+    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
         const req = https.get(
             "https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit",
             {
@@ -55,6 +60,8 @@ async function scrapeCoursePlanEdit(cookies, courses) {
             throw new Error("Pattern not found");
         }
 
+        console.log(match.slice(1));
+
         const curriculum = match[1];
         const classId = match[2];
         const credit = match[3];
@@ -68,7 +75,7 @@ async function scrapeCoursePlanEdit(cookies, courses) {
 
     reqBody += "comment=&submit=Simpan+IRS";
 
+    console.log(reqBody);
+
     return reqBody;
 }
-
-module.exports = { scrapeCoursePlanEdit };

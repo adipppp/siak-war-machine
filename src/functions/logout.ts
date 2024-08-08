@@ -1,7 +1,8 @@
-const https = require("https");
-const { sessionHasExpired } = require("./sessionHasExpired");
+import { IncomingMessage } from "http";
+import https from "https";
+import { Cookies } from "../types";
 
-async function changeRole(cookies) {
+export async function logout(cookies: Cookies) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
@@ -9,12 +10,12 @@ async function changeRole(cookies) {
         throw new Error("Mojavi or siakng_cc cookie not found");
     }
 
-    const res_1 = await new Promise((resolve, reject) => {
+    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
         const req = https.get(
-            "https://academic.ui.ac.id/main/Authentication/ChangeRole",
+            "https://academic.ui.ac.id/main/Authentication/Logout",
             {
                 headers: {
-                    Cookie: `Mojavi=${mojaviCookie};siakng_cc=${siakngCookie}`,
+                    Cookie: `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
                 },
             },
             (res) => resolve(res)
@@ -24,10 +25,4 @@ async function changeRole(cookies) {
     });
 
     res_1.resume();
-
-    if (sessionHasExpired(res_1)) {
-        throw new Error("Session has expired");
-    }
 }
-
-module.exports = { changeRole };

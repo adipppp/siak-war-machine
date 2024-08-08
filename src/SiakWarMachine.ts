@@ -1,19 +1,20 @@
-const { EventEmitter } = require("events");
-const { changeRole } = require("./functions/changeRole");
-const { doneCoursePlan } = require("./functions/doneCoursePlan");
-const { getConfig } = require("./functions/getConfig");
-const { login } = require("./functions/login");
-const { logout } = require("./functions/logout");
-const { saveCoursePlan } = require("./functions/saveCoursePlan");
-const { scrapeCoursePlanEdit } = require("./functions/scrapeCoursePlanEdit");
+import { EventEmitter } from "events";
+import { changeRole } from "./functions/changeRole";
+import { doneCoursePlan } from "./functions/doneCoursePlan";
+import { getConfig } from "./functions/getConfig";
+import { login } from "./functions/login";
+import { logout } from "./functions/logout";
+import { saveCoursePlan } from "./functions/saveCoursePlan";
+import { scrapeCoursePlanEdit } from "./functions/scrapeCoursePlanEdit";
+import { Cookies, Course } from "./types";
 
-class SiakWarMachine {
-    #emitter;
-    #configData;
-    #cookies;
-    #reqBody;
-    #progress;
-    #isRunning;
+export class SiakWarMachine {
+    #emitter: EventEmitter;
+    #configData: Course[] | null;
+    #cookies: Cookies | null;
+    #reqBody: string | null;
+    #progress: string | null;
+    #isRunning: boolean;
 
     constructor() {
         this.#emitter = new EventEmitter();
@@ -94,7 +95,7 @@ class SiakWarMachine {
         const start = Date.now();
 
         try {
-            await changeRole(this.#cookies);
+            await changeRole(this.#cookies!);
         } catch (err) {
             switch (err.message) {
                 case "Mojavi or siakng_cc cookie not found":
@@ -122,15 +123,15 @@ class SiakWarMachine {
         console.log(`Logged in as: ${process.env.USERNAME_SSO}`);
 
         if (
-            this.#progress === "saveCoursePlan" ||
-            this.#progress === "doneCoursePlan"
+            !(this.#progress === "saveCoursePlan") &&
+            !(this.#progress === "doneCoursePlan")
         ) {
+            this.#progress = "changeRole";
+            this.#emitter.emit("scrapeCoursePlanEdit");
+        } else {
             const before = this.#progress;
             this.#progress = "changeRole";
             this.#emitter.emit(before);
-        } else {
-            this.#progress = "changeRole";
-            this.#emitter.emit("scrapeCoursePlanEdit");
         }
     }
 
@@ -140,9 +141,9 @@ class SiakWarMachine {
         console.log("Sending requests...");
 
         try {
-            reqBody = await scrapeCoursePlanEdit(
-                this.#cookies,
-                this.#configData
+            this.#reqBody = await scrapeCoursePlanEdit(
+                this.#cookies!,
+                this.#configData!
             );
         } catch (err) {
             switch (err.message) {
@@ -179,7 +180,7 @@ class SiakWarMachine {
         console.log("Saving course plan...");
 
         try {
-            await saveCoursePlan(this.#cookies, this.#reqBody);
+            await saveCoursePlan(this.#cookies!, this.#reqBody!);
         } catch (err) {
             switch (err.message) {
                 case "Mojavi or siakng_cc cookie not found":
@@ -213,7 +214,7 @@ class SiakWarMachine {
         const start = Date.now();
 
         try {
-            await doneCoursePlan(this.#cookies, this.#reqBody);
+            await doneCoursePlan(this.#cookies!);
         } catch (err) {
             switch (err.message) {
                 case "Mojavi or siakng_cc cookie not found":
@@ -243,16 +244,18 @@ class SiakWarMachine {
         this.#emitter.emit("logout");
     }
 
-    async #handleLogout(err) {
+    async #handleLogout() {
         const start = Date.now();
 
         console.log("Logging out...");
 
-        await logout(this.#cookies);
+        try {
+            await logout(this.#cookies!);
+        } catch (err) {
+            console.error(err);
+        }
 
         console.log(`Done (${Date.now() - start} ms)`);
-
-        if (err) return;
 
         this.#progress = "logout";
         this.#emitter.emit("finish");
@@ -263,9 +266,9 @@ class SiakWarMachine {
         this.#isRunning = false;
     }
 
-    #handleError(err) {
+    #handleError(err: Error) {
         if (this.#progress !== "getConfig" && this.#progress !== null) {
-            this.#emitter.emit("logout", err);
+            this.#emitter.emit("logout");
         }
         this.#isRunning = false;
         console.error(err);
@@ -290,5 +293,3 @@ class SiakWarMachine {
         this.#emitter.emit("getConfig");
     }
 }
-
-module.exports = { SiakWarMachine };

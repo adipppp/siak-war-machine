@@ -1,7 +1,9 @@
-const https = require("https");
+import { IncomingMessage } from "http";
+import https from "https";
+import { Cookies } from "../types";
 
-async function login() {
-    const res_1 = await new Promise((resolve, reject) => {
+export async function login() {
+    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
         const req = https.request(
             "https://academic.ui.ac.id/main/Authentication/Index",
             {
@@ -23,13 +25,21 @@ async function login() {
 
     res_1.resume();
 
-    const cookies = {};
-
+    const cookies = {} as Cookies;
     const setCookieValues = res_1.headers["set-cookie"];
+
+    if (setCookieValues === undefined) {
+        throw new Error("No cookies found");
+    }
+
     const re = /^(.+)=(.+); path|$/;
 
     for (const value of setCookieValues) {
         const result = value.match(re);
+
+        if (!result) {
+            throw new Error("No cookies found");
+        }
 
         switch (result[1]) {
             case "Mojavi":
@@ -49,5 +59,3 @@ async function login() {
 
     return cookies;
 }
-
-module.exports = { login };

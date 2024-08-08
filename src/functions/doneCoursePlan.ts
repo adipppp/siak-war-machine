@@ -1,11 +1,13 @@
-const https = require("https");
-const { sessionHasExpired } = require("./sessionHasExpired");
+import { IncomingMessage } from "http";
+import https from "https";
+import { sessionHasExpired } from "./sessionHasExpired";
+import { Cookies } from "../types";
 
-async function doneCoursePlan(cookies) {
+export async function doneCoursePlan(cookies: Cookies) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
-    const res_1 = await new Promise((resolve, reject) => {
+    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
         const req = https.get(
             "https://academic.ui.ac.id/main/CoursePlan/CoursePlanDone",
             {
@@ -25,5 +27,3 @@ async function doneCoursePlan(cookies) {
         throw new Error("Session has expired");
     }
 }
-
-module.exports = { doneCoursePlan };
