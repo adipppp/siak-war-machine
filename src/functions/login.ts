@@ -1,37 +1,74 @@
-import { IncomingMessage } from "http";
-import https from "https";
+import EventEmitter, { once } from "events";
+import { Writable } from "stream";
+import { Client } from "undici";
+import { IncomingHttpHeaders } from "undici/types/header";
 import { Cookies } from "../types";
 
-export async function login() {
-    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
-        const req = https.request(
-            "https://academic.ui.ac.id/main/Authentication/Index",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
+export async function login(client: Client) {
+    if (
+        !process.env.USERNAME_SSO ||
+        !process.env.PASSWORD_SSO ||
+        !process.env.SIAKNG_HOST
+    ) {
+        throw new Error(
+            "Environment variable USERNAME_SSO, PASSWORD_SSO or SIAKNG_HOST not found"
+        );
+    }
+
+    const emitter = new EventEmitter();
+
+    client.stream(
+        {
+            path: "/main/Authentication/Index",
+            method: "POST",
+            idempotent: true,
+            bodyTimeout: 5000,
+            headersTimeout: 3000,
+            throwOnError: true,
+            headers: [
+                "Priority",
+                "u=0, i",
+                "Content-Type",
+                "application/x-www-form-urlencoded",
+            ],
+            body: `u=${process.env.USERNAME_SSO}&p=${process.env.PASSWORD_SSO}`,
+        },
+        ({ headers }) => {
+            emitter.emit("headers", headers);
+            const writable = new Writable({
+                write: (chunk, encoding, callback) => callback(),
+            });
+            writable.on("error", () => writable.destroy());
+            return new Writable({
+                write: (chunk, encoding, callback) => {
+                    callback();
                 },
-            },
-            (res) => resolve(res)
-        );
-        req.on("error", (err) => reject(err));
-        req.write(
-            `u=${process.env.USERNAME_SSO}&p=${process.env.PASSWORD_SSO}`,
-            "utf-8"
-        );
-        req.end();
-        req.setTimeout(5000, () => reject(new Error("Request timed out")));
-    });
+            });
+        },
+        (err) => {
+            if (err === null) return;
+            emitter.emit("error", err);
+        }
+    );
 
-    res_1.resume();
+    const result = (await Promise.race([
+        once(emitter, "headers"),
+        once(emitter, "error"),
+    ])) as [IncomingHttpHeaders] | [Error];
 
-    const cookies = {} as Cookies;
-    const setCookieValues = res_1.headers["set-cookie"];
+    if (result[0] instanceof Error) {
+        const error = result[0];
+        throw error;
+    }
+
+    const headers = result[0];
+    const setCookieValues = headers["set-cookie"];
 
     if (setCookieValues === undefined) {
         throw new Error("No cookies found");
     }
 
+    const cookies = {} as Cookies;
     const re = /^(.+)=(.+); path|$/;
 
     for (const value of setCookieValues) {

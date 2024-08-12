@@ -1,9 +1,15 @@
-import { IncomingMessage } from "http";
-import https from "https";
+import EventEmitter, { once } from "events";
+import { Writable } from "stream";
+import { Client } from "undici";
+import { IncomingHttpHeaders } from "undici/types/header";
 import { sessionHasExpired } from "./sessionHasExpired";
 import { Cookies } from "../types";
 
-export async function saveCoursePlan(cookies: Cookies, reqBody: string) {
+export async function saveCoursePlan(
+    client: Client,
+    cookies: Cookies,
+    reqBody: string
+) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
@@ -11,27 +17,54 @@ export async function saveCoursePlan(cookies: Cookies, reqBody: string) {
         throw new Error("Mojavi or siakng_cc cookie not found");
     }
 
-    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
-        const req = https.request(
-            "https://academic.ui.ac.id/main/CoursePlan/CoursePlanSave",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    Cookie: `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
+    const emitter = new EventEmitter();
+
+    client.stream(
+        {
+            path: "/main/CoursePlan/CoursePlanSave",
+            method: "POST",
+            idempotent: true,
+            bodyTimeout: 5000,
+            headersTimeout: 3000,
+            throwOnError: true,
+            headers: [
+                "Priority",
+                "u=0, i",
+                "Content-Type",
+                "application/x-www-form-urlencoded",
+                "Cookie",
+                `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
+            ],
+            body: reqBody,
+        },
+        ({ statusCode, headers }) => {
+            emitter.emit("headers", statusCode, headers);
+            return new Writable({
+                write: (chunk, encoding, callback) => {
+                    callback();
                 },
-            },
-            (res) => resolve(res)
-        );
-        req.on("error", (err) => reject(err));
-        req.write(reqBody, "utf-8");
-        req.end();
-        req.setTimeout(5000, () => reject(new Error("Request timed out")));
-    });
+            });
+        },
+        (err) => {
+            if (err === null) return;
+            emitter.emit("error", err);
+        }
+    );
 
-    res_1.resume();
+    const result = (await Promise.race([
+        once(emitter, "headers"),
+        once(emitter, "error"),
+    ])) as [number, IncomingHttpHeaders] | [Error];
 
-    if (sessionHasExpired(res_1)) {
+    if (result[0] instanceof Error) {
+        const error = result[0];
+        throw error;
+    }
+
+    const [statusCode, headers] = result;
+    const location = headers!["location"] as string | undefined;
+
+    if (sessionHasExpired(statusCode, location)) {
         throw new Error("Session has expired");
     }
 }

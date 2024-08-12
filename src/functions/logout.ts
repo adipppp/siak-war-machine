@@ -1,8 +1,9 @@
-import { IncomingMessage } from "http";
-import https from "https";
+import EventEmitter, { once } from "events";
+import { Writable } from "stream";
+import { Client } from "undici";
 import { Cookies } from "../types";
 
-export async function logout(cookies: Cookies) {
+export async function logout(client: Client, cookies: Cookies) {
     const mojaviCookie = cookies.Mojavi;
     const siakngCookie = cookies.siakng_cc;
 
@@ -10,19 +11,43 @@ export async function logout(cookies: Cookies) {
         throw new Error("Mojavi or siakng_cc cookie not found");
     }
 
-    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
-        const req = https.get(
-            "https://academic.ui.ac.id/main/Authentication/Logout",
-            {
-                headers: {
-                    Cookie: `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
-                },
-            },
-            (res) => resolve(res)
-        );
-        req.on("error", (err) => reject(err));
-        req.setTimeout(5000, () => reject(new Error("Request timed out")));
-    });
+    const emitter = new EventEmitter();
 
-    res_1.resume();
+    client.stream(
+        {
+            path: "/main/Authentication/Logout",
+            method: "GET",
+            bodyTimeout: 5000,
+            headersTimeout: 3000,
+            throwOnError: true,
+            headers: [
+                "Priority",
+                "u=0, i",
+                "Cookie",
+                `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
+            ],
+        },
+        () => {
+            emitter.emit("headers");
+            return new Writable({
+                write: (chunk, encoding, callback) => {
+                    callback();
+                },
+            });
+        },
+        (err) => {
+            if (err === null) return;
+            emitter.emit("error", err);
+        }
+    );
+
+    const result = (await Promise.race([
+        once(emitter, "headers"),
+        once(emitter, "error"),
+    ])) as [] | [Error];
+
+    if (result[0] instanceof Error) {
+        const error = result[0];
+        throw error;
+    }
 }

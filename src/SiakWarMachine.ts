@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { Client } from "undici";
 import { changeRole } from "./functions/changeRole";
 import { doneCoursePlan } from "./functions/doneCoursePlan";
 import { getConfig } from "./functions/getConfig";
@@ -8,6 +9,8 @@ import { saveCoursePlan } from "./functions/saveCoursePlan";
 import { scrapeCoursePlanEdit } from "./functions/scrapeCoursePlanEdit";
 import { Cookies, Course } from "./types";
 
+const SIAKNG_HOST = process.env.SIAKNG_HOST;
+
 export class SiakWarMachine {
     #emitter: EventEmitter;
     #configData: Course[] | null;
@@ -15,14 +18,20 @@ export class SiakWarMachine {
     #reqBody: string | null;
     #progress: string | null;
     #isRunning: boolean;
+    #client: Client;
 
     constructor() {
+        if (SIAKNG_HOST === undefined) {
+            throw new Error("Environment variable SIAKNG_HOST not found");
+        }
+
         this.#emitter = new EventEmitter();
         this.#configData = null;
         this.#cookies = null;
         this.#reqBody = null;
         this.#progress = null;
         this.#isRunning = false;
+        this.#client = new Client(SIAKNG_HOST);
         this.#attachListeners();
     }
 
@@ -71,10 +80,11 @@ export class SiakWarMachine {
         console.log("Logging in...");
 
         try {
-            this.#cookies = await login();
+            this.#cookies = await login(this.#client);
         } catch (err) {
             switch (err.message) {
-                case "Request timed out":
+                case "Headers Timeout Error":
+                case "Body Timeout Error":
                     console.error(err);
                     console.log("Reattempting to log in...");
                     this.#emitter.emit("login");
@@ -95,7 +105,7 @@ export class SiakWarMachine {
         const start = Date.now();
 
         try {
-            await changeRole(this.#cookies!);
+            await changeRole(this.#client, this.#cookies!);
         } catch (err) {
             switch (err.message) {
                 case "Mojavi or siakng_cc cookie not found":
@@ -108,7 +118,8 @@ export class SiakWarMachine {
                     console.log("Reattempting to log in...");
                     this.#emitter.emit("login");
                     break;
-                case "Request timed out":
+                case "Headers Timeout Error":
+                case "Body Timeout Error":
                     console.error(err);
                     console.log("Reattempting to change role...");
                     this.#emitter.emit("changeRole");
@@ -142,6 +153,7 @@ export class SiakWarMachine {
 
         try {
             this.#reqBody = await scrapeCoursePlanEdit(
+                this.#client,
                 this.#cookies!,
                 this.#configData!
             );
@@ -157,7 +169,8 @@ export class SiakWarMachine {
                     console.log("Reattempting to log in...");
                     this.#emitter.emit("login");
                     break;
-                case "Request timed out":
+                case "Headers Timeout Error":
+                case "Body Timeout Error":
                     console.error(err);
                     console.log("Reattempting to send requests...");
                     this.#emitter.emit("scrapeCoursePlanEdit");
@@ -180,7 +193,7 @@ export class SiakWarMachine {
         console.log("Saving course plan...");
 
         try {
-            await saveCoursePlan(this.#cookies!, this.#reqBody!);
+            await saveCoursePlan(this.#client, this.#cookies!, this.#reqBody!);
         } catch (err) {
             switch (err.message) {
                 case "Mojavi or siakng_cc cookie not found":
@@ -193,7 +206,8 @@ export class SiakWarMachine {
                     console.log("Reattempting to log in...");
                     this.#emitter.emit("login");
                     break;
-                case "Request timed out":
+                case "Headers Timeout Error":
+                case "Body Timeout Error":
                     console.error(err);
                     console.log("Reattempting to save course plan...");
                     this.#emitter.emit("saveCoursePlan");
@@ -214,7 +228,7 @@ export class SiakWarMachine {
         const start = Date.now();
 
         try {
-            await doneCoursePlan(this.#cookies!);
+            await doneCoursePlan(this.#client, this.#cookies!);
         } catch (err) {
             switch (err.message) {
                 case "Mojavi or siakng_cc cookie not found":
@@ -227,7 +241,8 @@ export class SiakWarMachine {
                     console.log("Reattempting to log in...");
                     this.#emitter.emit("login");
                     break;
-                case "Request timed out":
+                case "Headers Timeout Error":
+                case "Body Timeout Error":
                     console.error(err);
                     console.log("Reattempting to send request...");
                     this.#emitter.emit("doneCoursePlan");
@@ -250,7 +265,7 @@ export class SiakWarMachine {
         console.log("Logging out...");
 
         try {
-            await logout(this.#cookies!);
+            await logout(this.#client, this.#cookies!);
         } catch (err) {
             console.error(err);
         }
@@ -261,9 +276,10 @@ export class SiakWarMachine {
         this.#emitter.emit("finish");
     }
 
-    #handleFinish() {
+    async #handleFinish() {
         this.#progress = "finish";
         this.#isRunning = false;
+        await this.#client.close();
     }
 
     #handleError(err: Error) {
@@ -283,12 +299,6 @@ export class SiakWarMachine {
         this.#cookies = null;
         this.#reqBody = null;
         this.#progress = null;
-
-        if (!process.env.USERNAME_SSO || !process.env.PASSWORD_SSO) {
-            throw new Error(
-                "Environment variable $USERNAME_SSO or $PASSWORD_SSO not found"
-            );
-        }
 
         this.#emitter.emit("getConfig");
     }

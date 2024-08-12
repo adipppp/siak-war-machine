@@ -1,10 +1,7 @@
-import { IncomingMessage } from "http";
-
-export function sessionHasExpired(res: IncomingMessage) {
+export function sessionHasExpired(statusCode: number, location?: string) {
     return (
-        res.statusCode !== undefined &&
-        Math.trunc(res.statusCode / 300) === 1 &&
-        res.headers.location !== undefined &&
-        res.headers.location === "/main/Authentication/"
+        Math.trunc(statusCode / 300) === 1 &&
+        location !== undefined &&
+        location === "/main/Authentication/"
     );
 }

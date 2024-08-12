@@ -1,10 +1,12 @@
-import { once } from "events";
-import { IncomingMessage } from "http";
-import https from "https";
+import EventEmitter, { once } from "events";
+import { Writable } from "stream";
+import { Client } from "undici";
+import { IncomingHttpHeaders } from "undici/types/header";
 import { sessionHasExpired } from "./sessionHasExpired";
 import { Cookies, Course } from "../types";
 
 export async function scrapeCoursePlanEdit(
+    client: Client,
     cookies: Cookies,
     courses: Course[]
 ) {
@@ -15,28 +17,47 @@ export async function scrapeCoursePlanEdit(
         throw new Error("Mojavi or siakng_cc cookie not found");
     }
 
-    const res_1 = await new Promise<IncomingMessage>((resolve, reject) => {
-        const req = https.get(
-            "https://academic.ui.ac.id/main/CoursePlan/CoursePlanEdit",
-            {
-                headers: {
-                    Cookie: `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
+    const emitter = new EventEmitter();
+
+    const stream = client.stream(
+        {
+            path: "/main/CoursePlan/CoursePlanEdit",
+            method: "GET",
+            opaque: [],
+            bodyTimeout: 5000,
+            headersTimeout: 3000,
+            throwOnError: true,
+            headers: [
+                "Priority",
+                "u=0, i",
+                "Cookie",
+                `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
+            ],
+        },
+        ({ statusCode, headers, opaque }) => {
+            emitter.emit("headers", statusCode, headers);
+            const bufs = opaque as Buffer[];
+            return new Writable({
+                write: (chunk, encoding, callback) => {
+                    bufs.push(chunk);
+                    callback();
                 },
-            },
-            (res) => resolve(res)
-        );
-        req.on("error", (err) => reject(err));
-        req.setTimeout(5000, () => reject(new Error("Request timed out")));
-    });
+            });
+        }
+    );
 
-    let htmlString = "";
+    const [statusCode, headers] = (await once(emitter, "headers")) as [
+        number,
+        IncomingHttpHeaders
+    ];
+    const location = headers["location"] as string | undefined;
 
-    res_1.on("data", (chunk) => (htmlString += chunk.toString()));
-    await once(res_1, "end");
-
-    if (sessionHasExpired(res_1)) {
+    if (sessionHasExpired(statusCode, location)) {
         throw new Error("Session has expired");
     }
+
+    const bufs = (await stream).opaque as Buffer[];
+    const htmlString = Buffer.concat(bufs).toString("utf-8");
 
     // get tokens
     const re =
@@ -60,8 +81,6 @@ export async function scrapeCoursePlanEdit(
             throw new Error("Pattern not found");
         }
 
-        console.log(match.slice(1));
-
         const curriculum = match[1];
         const classId = match[2];
         const credit = match[3];
@@ -74,8 +93,6 @@ export async function scrapeCoursePlanEdit(
     }
 
     reqBody += "comment=&submit=Simpan+IRS";
-
-    console.log(reqBody);
 
     return reqBody;
 }
