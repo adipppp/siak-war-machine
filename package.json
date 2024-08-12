@@ -1,19 +1,25 @@
 {
     "name": "siak-war-machine",
-    "version": "1.1.9",
+    "version": "1.2.0",
     "description": "",
-    "main": "index.js",
+    "main": "dist/index.js",
     "scripts": {
-        "start": "node index.js",
+        "build": "npx tsc",
+        "clean": "rimraf dist",
+        "start": "npm run clean && npm run build && node dist/index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
     "author": "adipppp",
     "license": "ISC",
     "dependencies": {
-        "dotenv": "^16.4.5"
+        "dotenv": "^16.4.5",
+        "undici": "^6.19.7"
     },
     "devDependencies": {
-        "cross-env": "^7.0.3"
+        "@types/node": "^22.2.0",
+        "cross-env": "^7.0.3",
+        "rimraf": "^6.0.1",
+        "typescript": "^5.5.4"
     }
 }
