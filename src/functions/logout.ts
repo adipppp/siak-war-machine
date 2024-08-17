@@ -22,7 +22,7 @@ export async function logout(client: Client, cookies: Cookies) {
             throwOnError: true,
             headers: [
                 "Priority",
-                "u=0, i",
+                "u=0",
                 "Cookie",
                 `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
             ],

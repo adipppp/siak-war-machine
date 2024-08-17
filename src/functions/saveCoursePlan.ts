@@ -29,7 +29,7 @@ export async function saveCoursePlan(
             throwOnError: true,
             headers: [
                 "Priority",
-                "u=0, i",
+                "u=0",
                 "Content-Type",
                 "application/x-www-form-urlencoded",
                 "Cookie",

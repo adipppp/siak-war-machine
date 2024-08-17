@@ -29,7 +29,7 @@ export async function scrapeCoursePlanEdit(
             throwOnError: true,
             headers: [
                 "Priority",
-                "u=0, i",
+                "u=0",
                 "Cookie",
                 `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
             ],
