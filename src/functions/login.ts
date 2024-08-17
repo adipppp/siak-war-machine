@@ -2,6 +2,7 @@ import EventEmitter, { once } from "events";
 import { Writable } from "stream";
 import { Client } from "undici";
 import { IncomingHttpHeaders } from "undici/types/header";
+import { CustomError, CustomErrorCode } from "../errors";
 import { Cookies } from "../types";
 
 export async function login(client: Client) {
@@ -10,7 +11,8 @@ export async function login(client: Client) {
         !process.env.PASSWORD_SSO ||
         !process.env.SIAKNG_HOST
     ) {
-        throw new Error(
+        throw new CustomError(
+            CustomErrorCode.ENV_VARIABLE_NOT_FOUND,
             "Environment variable USERNAME_SSO, PASSWORD_SSO or SIAKNG_HOST not found"
         );
     }
@@ -35,10 +37,6 @@ export async function login(client: Client) {
         },
         ({ headers }) => {
             emitter.emit("headers", headers);
-            const writable = new Writable({
-                write: (chunk, encoding, callback) => callback(),
-            });
-            writable.on("error", () => writable.destroy());
             return new Writable({
                 write: (chunk, encoding, callback) => {
                     callback();
@@ -65,7 +63,10 @@ export async function login(client: Client) {
     const setCookieValues = headers["set-cookie"];
 
     if (setCookieValues === undefined) {
-        throw new Error("No cookies found");
+        throw new CustomError(
+            CustomErrorCode.NO_COOKIES_RETURNED,
+            "No cookies found"
+        );
     }
 
     const cookies = {} as Cookies;
@@ -75,7 +76,10 @@ export async function login(client: Client) {
         const result = value.match(re);
 
         if (!result) {
-            throw new Error("No cookies found");
+            throw new CustomError(
+                CustomErrorCode.NO_COOKIES_RETURNED,
+                "No cookies found"
+            );
         }
 
         switch (result[1]) {
@@ -86,12 +90,17 @@ export async function login(client: Client) {
                 cookies.siakng_cc = result[2];
                 break;
             default:
-                console.log("An unidentified cookie has appeared!");
+                console.log(
+                    `An unidentified cookie has appeared: ${result[1]}`
+                );
         }
     }
 
     if (!cookies.Mojavi || !cookies.siakng_cc) {
-        throw new Error("Mojavi or siakng_cc cookie not found");
+        throw new CustomError(
+            CustomErrorCode.SESSION_COOKIES_NOT_FOUND,
+            "Mojavi or siakng_cc cookie not found"
+        );
     }
 
     return cookies;

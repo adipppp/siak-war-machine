@@ -1,17 +1,20 @@
 import { EventEmitter } from "events";
 import { Client } from "undici";
-import { changeRole } from "./functions/changeRole";
-import { doneCoursePlan } from "./functions/doneCoursePlan";
-import { getConfig } from "./functions/getConfig";
-import { login } from "./functions/login";
-import { logout } from "./functions/logout";
-import { saveCoursePlan } from "./functions/saveCoursePlan";
-import { scrapeCoursePlanEdit } from "./functions/scrapeCoursePlanEdit";
+import {
+    changeRole,
+    getConfig,
+    login,
+    logout,
+    saveCoursePlan,
+    scrapeCoursePlanEdit,
+} from "./functions";
+import { CustomError, CustomErrorCode } from "./errors";
 import { Cookies, Course } from "./types";
 
 const SIAKNG_HOST = process.env.SIAKNG_HOST;
 
 export class SiakWarMachine {
+    #id: string;
     #emitter: EventEmitter;
     #configData: Course[] | null;
     #cookies: Cookies | null;
@@ -20,11 +23,15 @@ export class SiakWarMachine {
     #isRunning: boolean;
     #client: Client;
 
-    constructor() {
+    constructor(id: string) {
         if (SIAKNG_HOST === undefined) {
-            throw new Error("Environment variable SIAKNG_HOST not found");
+            throw new CustomError(
+                CustomErrorCode.ENV_VARIABLE_NOT_FOUND,
+                "Environment variable SIAKNG_HOST not found"
+            );
         }
 
+        this.#id = id;
         this.#emitter = new EventEmitter();
         this.#configData = null;
         this.#cookies = null;
@@ -47,10 +54,6 @@ export class SiakWarMachine {
             "saveCoursePlan",
             this.#handleSaveCoursePlan.bind(this)
         );
-        this.#emitter.on(
-            "doneCoursePlan",
-            this.#handleDoneCoursePlan.bind(this)
-        );
         this.#emitter.on("logout", this.#handleLogout.bind(this));
         this.#emitter.on("finish", this.#handleFinish.bind(this));
         this.#emitter.on("error", this.#handleError.bind(this));
@@ -59,7 +62,7 @@ export class SiakWarMachine {
     async #handleGetConfig() {
         const start = Date.now();
 
-        console.log("Reading config.json...");
+        console.log(`[${this.#id}] Reading config.json...`);
 
         try {
             this.#configData = await getConfig();
@@ -68,7 +71,7 @@ export class SiakWarMachine {
             return;
         }
 
-        console.log(`Done (${Date.now() - start} ms)`);
+        console.log(`[${this.#id}] Done (${Date.now() - start} ms)`);
 
         this.#progress = "getConfig";
         this.#emitter.emit("login");
@@ -77,7 +80,7 @@ export class SiakWarMachine {
     async #handleLogin() {
         const start = Date.now();
 
-        console.log("Logging in...");
+        console.log(`[${this.#id}] Logging in...`);
 
         try {
             this.#cookies = await login(this.#client);
@@ -86,7 +89,7 @@ export class SiakWarMachine {
                 case "Headers Timeout Error":
                 case "Body Timeout Error":
                     console.error(err);
-                    console.log("Reattempting to log in...");
+                    console.log(`[${this.#id}] Reattempting to log in...`);
                     this.#emitter.emit("login");
                     break;
                 default:
@@ -95,7 +98,7 @@ export class SiakWarMachine {
             return;
         }
 
-        console.log(`Done (${Date.now() - start} ms)`);
+        console.log(`[${this.#id}] Done (${Date.now() - start} ms)`);
 
         this.#progress = "login";
         this.#emitter.emit("changeRole");
@@ -107,49 +110,45 @@ export class SiakWarMachine {
         try {
             await changeRole(this.#client, this.#cookies!);
         } catch (err) {
-            switch (err.message) {
-                case "Mojavi or siakng_cc cookie not found":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Session has expired":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Headers Timeout Error":
-                case "Body Timeout Error":
-                    console.error(err);
-                    console.log("Reattempting to change role...");
-                    this.#emitter.emit("changeRole");
-                    break;
-                default:
-                    this.#emitter.emit("error", err);
+            if (err instanceof CustomError) {
+                switch (err.code) {
+                    case CustomErrorCode.SESSION_COOKIES_NOT_FOUND:
+                    case CustomErrorCode.SESSION_EXPIRED:
+                        console.error(err);
+                        console.log(`[${this.#id}] Reattempting to log in...`);
+                        this.#emitter.emit("login");
+                        break;
+                    default:
+                        this.#emitter.emit("error", err);
+                }
+            } else {
+                switch (err.message) {
+                    case "Headers Timeout Error":
+                    case "Body Timeout Error":
+                        console.error(err);
+                        console.log(
+                            `[${this.#id}] Reattempting to change role...`
+                        );
+                        this.#emitter.emit("changeRole");
+                        break;
+                    default:
+                        this.#emitter.emit("error", err);
+                }
             }
             return;
         }
 
-        console.log(`Done (${Date.now() - start} ms)`);
-        console.log(`Logged in as: ${process.env.USERNAME_SSO}`);
+        console.log(`[${this.#id}] Done (${Date.now() - start} ms)`);
+        console.log(`[${this.#id}] Logged in as: ${process.env.USERNAME_SSO}`);
 
-        if (
-            !(this.#progress === "saveCoursePlan") &&
-            !(this.#progress === "doneCoursePlan")
-        ) {
-            this.#progress = "changeRole";
-            this.#emitter.emit("scrapeCoursePlanEdit");
-        } else {
-            const before = this.#progress;
-            this.#progress = "changeRole";
-            this.#emitter.emit(before);
-        }
+        this.#progress = "changeRole";
+        this.#emitter.emit("scrapeCoursePlanEdit");
     }
 
     async #handleScrapeCoursePlanEdit() {
         const start = Date.now();
 
-        console.log("Sending requests...");
+        console.log(`[${this.#id}] Sending requests...`);
 
         try {
             this.#reqBody = await scrapeCoursePlanEdit(
@@ -158,30 +157,43 @@ export class SiakWarMachine {
                 this.#configData!
             );
         } catch (err) {
-            switch (err.message) {
-                case "Mojavi or siakng_cc cookie not found":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Session has expired":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Headers Timeout Error":
-                case "Body Timeout Error":
-                    console.error(err);
-                    console.log("Reattempting to send requests...");
-                    this.#emitter.emit("scrapeCoursePlanEdit");
-                    break;
-                default:
-                    this.#emitter.emit("error", err);
+            if (err instanceof CustomError) {
+                switch (err.code) {
+                    case CustomErrorCode.SESSION_COOKIES_NOT_FOUND:
+                    case CustomErrorCode.SESSION_EXPIRED:
+                        console.error(err);
+                        console.log(`[${this.#id}] Reattempting to log in...`);
+                        this.#emitter.emit("login");
+                        break;
+                    case CustomErrorCode.PATTERN_NOT_FOUND:
+                    case CustomErrorCode.TOKENS_NOT_FOUND:
+                        console.error(err);
+                        console.log(
+                            `[${this.#id}] Reattempting to send requests...`
+                        );
+                        this.#emitter.emit("scrapeCoursePlanEdit");
+                        break;
+                    default:
+                        this.#emitter.emit("error", err);
+                }
+            } else {
+                switch (err.message) {
+                    case "Headers Timeout Error":
+                    case "Body Timeout Error":
+                        console.error(err);
+                        console.log(
+                            `[${this.#id}] Reattempting to send requests...`
+                        );
+                        this.#emitter.emit("scrapeCoursePlanEdit");
+                        break;
+                    default:
+                        this.#emitter.emit("error", err);
+                }
             }
             return;
         }
 
-        console.log(`Done (${Date.now() - start} ms)`);
+        console.log(`[${this.#id}] Done (${Date.now() - start} ms)`);
 
         this.#progress = "scrapeCoursePlanEdit";
         this.#emitter.emit("saveCoursePlan");
@@ -190,79 +202,49 @@ export class SiakWarMachine {
     async #handleSaveCoursePlan() {
         const start = Date.now();
 
-        console.log("Saving course plan...");
+        console.log(`[${this.#id}] Saving course plan...`);
 
         try {
             await saveCoursePlan(this.#client, this.#cookies!, this.#reqBody!);
         } catch (err) {
-            switch (err.message) {
-                case "Mojavi or siakng_cc cookie not found":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Session has expired":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Headers Timeout Error":
-                case "Body Timeout Error":
-                    console.error(err);
-                    console.log("Reattempting to save course plan...");
-                    this.#emitter.emit("saveCoursePlan");
-                    break;
-                default:
-                    this.#emitter.emit("error", err);
+            if (err instanceof CustomError) {
+                switch (err.code) {
+                    case CustomErrorCode.SESSION_COOKIES_NOT_FOUND:
+                    case CustomErrorCode.SESSION_EXPIRED:
+                        console.error(err);
+                        console.log(`[${this.#id}] Reattempting to log in...`);
+                        this.#emitter.emit("login");
+                        break;
+                    default:
+                        this.#emitter.emit("error", err);
+                }
+            } else {
+                switch (err.message) {
+                    case "Headers Timeout Error":
+                    case "Body Timeout Error":
+                        console.error(err);
+                        console.log(
+                            `[${this.#id}] Reattempting to save course plan...`
+                        );
+                        this.#emitter.emit("saveCoursePlan");
+                        break;
+                    default:
+                        this.#emitter.emit("error", err);
+                }
             }
             return;
         }
 
-        console.log(`Done (${Date.now() - start} ms)`);
+        console.log(`[${this.#id}] Done (${Date.now() - start} ms)`);
 
         this.#progress = "saveCoursePlan";
-        this.#emitter.emit("doneCoursePlan");
-    }
-
-    async #handleDoneCoursePlan() {
-        const start = Date.now();
-
-        try {
-            await doneCoursePlan(this.#client, this.#cookies!);
-        } catch (err) {
-            switch (err.message) {
-                case "Mojavi or siakng_cc cookie not found":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Session has expired":
-                    console.error(err);
-                    console.log("Reattempting to log in...");
-                    this.#emitter.emit("login");
-                    break;
-                case "Headers Timeout Error":
-                case "Body Timeout Error":
-                    console.error(err);
-                    console.log("Reattempting to send request...");
-                    this.#emitter.emit("doneCoursePlan");
-                    break;
-                default:
-                    this.#emitter.emit("error", err);
-            }
-            return;
-        }
-
-        console.log(`Done (${Date.now() - start} ms)`);
-
-        this.#progress = "doneCoursePlan";
         this.#emitter.emit("logout");
     }
 
     async #handleLogout() {
         const start = Date.now();
 
-        console.log("Logging out...");
+        console.log(`[${this.#id}] Logging out...`);
 
         try {
             await logout(this.#client, this.#cookies!);
@@ -270,7 +252,7 @@ export class SiakWarMachine {
             console.error(err);
         }
 
-        console.log(`Done (${Date.now() - start} ms)`);
+        console.log(`[${this.#id}] Done (${Date.now() - start} ms)`);
 
         this.#progress = "logout";
         this.#emitter.emit("finish");

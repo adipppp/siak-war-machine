@@ -2,6 +2,7 @@ import EventEmitter, { once } from "events";
 import { Writable } from "stream";
 import { Client } from "undici";
 import { IncomingHttpHeaders } from "undici/types/header";
+import { CustomError, CustomErrorCode } from "../errors";
 import { sessionHasExpired } from "./sessionHasExpired";
 import { Cookies } from "../types";
 
@@ -10,7 +11,10 @@ export async function changeRole(client: Client, cookies: Cookies) {
     const siakngCookie = cookies.siakng_cc;
 
     if (!mojaviCookie || !siakngCookie) {
-        throw new Error("Mojavi or siakng_cc cookie not found");
+        throw new CustomError(
+            CustomErrorCode.SESSION_COOKIES_NOT_FOUND,
+            "Mojavi or siakng_cc cookie not found"
+        );
     }
 
     const emitter = new EventEmitter();
@@ -57,6 +61,9 @@ export async function changeRole(client: Client, cookies: Cookies) {
     const location = headers!["location"] as string | undefined;
 
     if (sessionHasExpired(statusCode, location)) {
-        throw new Error("Session has expired");
+        throw new CustomError(
+            CustomErrorCode.SESSION_EXPIRED,
+            "Session has expired"
+        );
     }
 }

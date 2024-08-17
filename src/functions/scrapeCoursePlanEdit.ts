@@ -2,6 +2,7 @@ import EventEmitter, { once } from "events";
 import { Writable } from "stream";
 import { Client } from "undici";
 import { IncomingHttpHeaders } from "undici/types/header";
+import { CustomError, CustomErrorCode } from "../errors";
 import { sessionHasExpired } from "./sessionHasExpired";
 import { Cookies, Course } from "../types";
 
@@ -14,7 +15,10 @@ export async function scrapeCoursePlanEdit(
     const siakngCookie = cookies.siakng_cc;
 
     if (!mojaviCookie || !siakngCookie) {
-        throw new Error("Mojavi or siakng_cc cookie not found");
+        throw new CustomError(
+            CustomErrorCode.SESSION_COOKIES_NOT_FOUND,
+            "Mojavi or siakng_cc cookie not found"
+        );
     }
 
     const emitter = new EventEmitter();
@@ -53,19 +57,24 @@ export async function scrapeCoursePlanEdit(
     const location = headers["location"] as string | undefined;
 
     if (sessionHasExpired(statusCode, location)) {
-        throw new Error("Session has expired");
+        throw new CustomError(
+            CustomErrorCode.SESSION_EXPIRED,
+            "Session has expired"
+        );
     }
 
     const bufs = (await stream).opaque as Buffer[];
     const htmlString = Buffer.concat(bufs).toString("utf-8");
 
-    // get tokens
     const re =
         /<input +type *= *"hidden" *name *= *"tokens" *value *= *"([0-9]+)" *\/?>/i;
     const match = htmlString.match(re);
 
     if (!match) {
-        throw new Error("tokens not found");
+        throw new CustomError(
+            CustomErrorCode.TOKENS_NOT_FOUND,
+            "tokens not found"
+        );
     }
 
     let reqBody = `tokens=${match[1]}&`;
@@ -78,7 +87,10 @@ export async function scrapeCoursePlanEdit(
         const match = htmlString.match(re);
 
         if (!match) {
-            throw new Error("Pattern not found");
+            throw new CustomError(
+                CustomErrorCode.PATTERN_NOT_FOUND,
+                "Pattern not found"
+            );
         }
 
         const curriculum = match[1];

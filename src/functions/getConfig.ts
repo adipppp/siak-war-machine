@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { CustomError, CustomErrorCode } from "../errors";
 import { Course } from "../types";
 
 export async function getConfig() {
@@ -12,11 +13,13 @@ export async function getConfig() {
         const course = courses[i];
 
         if (!course.class && !course.code) {
-            throw new Error(
+            throw new CustomError(
+                CustomErrorCode.INVALID_CONFIG_DATA,
                 `ATTN: index ${i} doesn't have the "code" and "class"`
             );
         } else if (!course.code) {
-            throw new Error(
+            throw new CustomError(
+                CustomErrorCode.INVALID_CONFIG_DATA,
                 `ATTN: class "${course.class}" at index ${i} doesn't have the "code" property assigned`
             );
         }

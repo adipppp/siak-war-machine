@@ -5,7 +5,7 @@ function main() {
     const instances = 10;
 
     for (let i = 0; i < instances; i++) {
-        new SiakWarMachine().run();
+        new SiakWarMachine(`${i + 1}`).run();
     }
 }
 
