@@ -12,15 +12,25 @@ export async function getConfig() {
     for (let i = 0; i < courses.length; i++) {
         const course = courses[i];
 
-        if (!course.class && !course.code) {
+        if (!course.code) {
             throw new CustomError(
                 CustomErrorCode.INVALID_CONFIG_DATA,
-                `ATTN: index ${i} doesn't have the "code" and "class"`
+                `ATTN: class "${course.classId}" at index ${i} doesn't have the "code" property assigned`
             );
-        } else if (!course.code) {
+        } else if (!course.curriculum) {
             throw new CustomError(
                 CustomErrorCode.INVALID_CONFIG_DATA,
-                `ATTN: class "${course.class}" at index ${i} doesn't have the "code" property assigned`
+                `ATTN: class "${course.code}" at index ${i} doesn't have the "curriculum" property assigned`
+            );
+        } else if (!course.classId) {
+            throw new CustomError(
+                CustomErrorCode.INVALID_CONFIG_DATA,
+                `ATTN: class "${course.code}" at index ${i} doesn't have the "classId" property assigned`
+            );
+        } else if (!course.credit) {
+            throw new CustomError(
+                CustomErrorCode.INVALID_CONFIG_DATA,
+                `ATTN: class "${course.code}" at index ${i} doesn't have the "classId" property assigned`
             );
         }
     }

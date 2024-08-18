@@ -17,6 +17,7 @@ export async function logout(client: Client, cookies: Cookies) {
         {
             path: "/main/Authentication/Logout",
             method: "GET",
+            opaque: emitter,
             bodyTimeout: 5000,
             headersTimeout: 3000,
             throwOnError: true,
@@ -27,7 +28,8 @@ export async function logout(client: Client, cookies: Cookies) {
                 `Mojavi=${mojaviCookie}; siakng_cc=${siakngCookie}`,
             ],
         },
-        () => {
+        ({ opaque }) => {
+            const emitter = opaque as EventEmitter;
             emitter.emit("headers");
             return new Writable({
                 write: (chunk, encoding, callback) => {
@@ -35,16 +37,19 @@ export async function logout(client: Client, cookies: Cookies) {
                 },
             });
         },
-        (err) => {
+        (err, data) => {
+            const emitter = data.opaque as EventEmitter;
             if (err === null) return;
             emitter.emit("error", err);
         }
     );
 
-    const result = (await Promise.race([
-        once(emitter, "headers"),
-        once(emitter, "error"),
-    ])) as [] | [Error];
+    const headersListener = once(emitter, "headers");
+    const errorListener = once(emitter, "error");
+
+    const result = (await Promise.race([headersListener, errorListener])) as
+        | []
+        | [Error];
 
     if (result[0] instanceof Error) {
         const error = result[0];

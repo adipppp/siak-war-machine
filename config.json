@@ -2,33 +2,38 @@
   "courses": [
     {
       "code": "CSCM603117",
+      "curriculum": "01.00.12.01-2024",
+      "classId": "753873",
       "name": "Analisis Numerik",
-      "class": "A"
+      "credit": 3
     },
     {
-      "code": "CSGE602070",
-      "name": "Basis Data",
-      "class": "E"
+      "code": "CSCM603142",
+      "curriculum": "01.00.12.01-2024",
+      "classId": "753878",
+      "name": "Desain & Analisis Algoritma",
+      "credit": 4
     },
     {
-      "code": "CSCM602223",
-      "name": "Pemrograman Lanjut",
-      "class": "C"
+      "code": "CSCM603154",
+      "curriculum": "01.00.12.01-2024",
+      "classId": "753880",
+      "name": "Jaringan Komputer",
+      "credit": 4
     },
     {
-      "code": "CSGE602024",
-      "name": "Sistem Interaksi",
-      "class": "F"
+      "code": "CSGE603130",
+      "curriculum": "01.00.12.01-2024",
+      "classId": "753885",
+      "name": "Kecerdasan Artifisial & Sains Data Dasar",
+      "credit": 4
     },
     {
-      "code": "CSGE602013",
-      "name": "Statistika & Probabilitas",
-      "class": "E"
-    },
-    {
-      "code": "CSCM602241",
-      "name": "Teori Bahasa & Automata",
-      "class": "C"
+      "code": "CSCM603125",
+      "curriculum": "01.00.12.01-2024",
+      "classId": "753923",
+      "name": "Rekayasa Perangkat Lunak",
+      "credit": 3
     }
   ]
 }

@@ -28,6 +28,7 @@ export async function saveCoursePlan(
             path: "/main/CoursePlan/CoursePlanSave",
             method: "POST",
             idempotent: true,
+            opaque: emitter,
             bodyTimeout: 5000,
             headersTimeout: 3000,
             throwOnError: true,
@@ -41,7 +42,8 @@ export async function saveCoursePlan(
             ],
             body: reqBody,
         },
-        ({ statusCode, headers }) => {
+        ({ statusCode, headers, opaque }) => {
+            const emitter = opaque as EventEmitter;
             emitter.emit("headers", statusCode, headers);
             return new Writable({
                 write: (chunk, encoding, callback) => {
@@ -49,16 +51,19 @@ export async function saveCoursePlan(
                 },
             });
         },
-        (err) => {
+        (err, data) => {
+            const emitter = data.opaque as EventEmitter;
             if (err === null) return;
             emitter.emit("error", err);
         }
     );
 
-    const result = (await Promise.race([
-        once(emitter, "headers"),
-        once(emitter, "error"),
-    ])) as [number, IncomingHttpHeaders] | [Error];
+    const headersListener = once(emitter, "headers");
+    const errorListener = once(emitter, "error");
+
+    const result = (await Promise.race([headersListener, errorListener])) as
+        | [number, IncomingHttpHeaders]
+        | [Error];
 
     if (result[0] instanceof Error) {
         const error = result[0];

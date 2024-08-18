@@ -5,6 +5,8 @@ export interface Cookies {
 
 export interface Course {
     code?: string;
+    curriculum?: string;
+    classId?: number;
     name?: string;
-    class?: string;
+    credit?: number;
 }

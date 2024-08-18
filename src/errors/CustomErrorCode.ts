@@ -5,5 +5,4 @@ export const enum CustomErrorCode {
     ENV_VARIABLE_NOT_FOUND,
     NO_COOKIES_RETURNED,
     TOKENS_NOT_FOUND,
-    PATTERN_NOT_FOUND,
 }

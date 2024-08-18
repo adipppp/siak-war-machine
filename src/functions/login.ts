@@ -24,6 +24,7 @@ export async function login(client: Client) {
             path: "/main/Authentication/Index",
             method: "POST",
             idempotent: true,
+            opaque: emitter,
             bodyTimeout: 5000,
             headersTimeout: 3000,
             throwOnError: true,
@@ -35,7 +36,8 @@ export async function login(client: Client) {
             ],
             body: `u=${process.env.USERNAME_SSO}&p=${process.env.PASSWORD_SSO}`,
         },
-        ({ headers }) => {
+        ({ headers, opaque }) => {
+            const emitter = opaque as EventEmitter;
             emitter.emit("headers", headers);
             return new Writable({
                 write: (chunk, encoding, callback) => {
@@ -43,16 +45,19 @@ export async function login(client: Client) {
                 },
             });
         },
-        (err) => {
+        (err, data) => {
             if (err === null) return;
+            const emitter = data.opaque as EventEmitter;
             emitter.emit("error", err);
         }
     );
 
-    const result = (await Promise.race([
-        once(emitter, "headers"),
-        once(emitter, "error"),
-    ])) as [IncomingHttpHeaders] | [Error];
+    const headersListener = once(emitter, "headers");
+    const errorListener = once(emitter, "error");
+
+    const result = (await Promise.race([headersListener, errorListener])) as
+        | [IncomingHttpHeaders]
+        | [Error];
 
     if (result[0] instanceof Error) {
         const error = result[0];

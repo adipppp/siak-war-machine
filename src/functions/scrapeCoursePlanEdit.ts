@@ -1,4 +1,4 @@
-import EventEmitter, { once } from "events";
+import EventEmitter, { on, once } from "events";
 import { Writable } from "stream";
 import { Client } from "undici";
 import { IncomingHttpHeaders } from "undici/types/header";
@@ -23,11 +23,11 @@ export async function scrapeCoursePlanEdit(
 
     const emitter = new EventEmitter();
 
-    const stream = client.stream(
+    client.stream(
         {
             path: "/main/CoursePlan/CoursePlanEdit",
             method: "GET",
-            opaque: [],
+            opaque: emitter,
             bodyTimeout: 5000,
             headersTimeout: 3000,
             throwOnError: true,
@@ -39,22 +39,41 @@ export async function scrapeCoursePlanEdit(
             ],
         },
         ({ statusCode, headers, opaque }) => {
+            const emitter = opaque as EventEmitter;
             emitter.emit("headers", statusCode, headers);
-            const bufs = opaque as Buffer[];
             return new Writable({
+                final: (callback) => {
+                    emitter.emit("end");
+                    callback();
+                },
                 write: (chunk, encoding, callback) => {
-                    bufs.push(chunk);
+                    emitter.emit("data", chunk);
                     callback();
                 },
             });
+        },
+        (err, data) => {
+            const emitter = data.opaque as EventEmitter;
+            if (err === null) return;
+            emitter.emit("error", err);
         }
     );
 
-    const [statusCode, headers] = (await once(emitter, "headers")) as [
-        number,
-        IncomingHttpHeaders
-    ];
-    const location = headers["location"] as string | undefined;
+    const headersListener = once(emitter, "headers");
+    const errorListener = once(emitter, "error");
+    const dataListener = on(emitter, "data", { close: ["end"] });
+
+    const result = (await Promise.race([headersListener, errorListener])) as
+        | [number, IncomingHttpHeaders]
+        | [Error];
+
+    if (result[0] instanceof Error) {
+        const error = result[0];
+        throw error;
+    }
+
+    const [statusCode, headers] = result;
+    const location = headers!["location"] as string | undefined;
 
     if (sessionHasExpired(statusCode, location)) {
         throw new CustomError(
@@ -63,40 +82,32 @@ export async function scrapeCoursePlanEdit(
         );
     }
 
-    const bufs = (await stream).opaque as Buffer[];
-    const htmlString = Buffer.concat(bufs).toString("utf-8");
-
+    let token;
+    let htmlString = "";
     const re =
-        /<input +type *= *"hidden" *name *= *"tokens" *value *= *"([0-9]+)" *\/?>/i;
-    const match = htmlString.match(re);
+        /<input +type *= *"hidden" *name *= *"tokens" *value *= *"([0-9]{10})" *\/?>/i;
 
-    if (!match) {
+    for await (const data of dataListener) {
+        const chunk = data[0] as Buffer;
+        htmlString += chunk.toString("utf-8");
+        const match = htmlString.match(re);
+        if (match !== null) {
+            token = match[1];
+            break;
+        }
+    }
+
+    if (token === undefined) {
         throw new CustomError(
             CustomErrorCode.TOKENS_NOT_FOUND,
             "tokens not found"
         );
     }
 
-    let reqBody = `tokens=${match[1]}&`;
+    let reqBody = `tokens=${token}&`;
 
     for (const course of courses) {
-        const re = new RegExp(
-            `c\\[${course.code}_([0-9\\-.]+)\\]" *value *= *"([0-9]+)-([0-9])"[\\s\\S\\n]+<a +.*href *= *"ClassInfo\\?cc=\\2".*>.*[ \\-]${course.class}<\\/a *>`,
-            "i"
-        );
-        const match = htmlString.match(re);
-
-        if (!match) {
-            throw new CustomError(
-                CustomErrorCode.PATTERN_NOT_FOUND,
-                "Pattern not found"
-            );
-        }
-
-        const curriculum = match[1];
-        const classId = match[2];
-        const credit = match[3];
-
+        const { curriculum, classId, credit } = course;
         reqBody +=
             encodeURIComponent(`c[${course.code}_${curriculum}]`) +
             "=" +

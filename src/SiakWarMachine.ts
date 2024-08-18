@@ -165,7 +165,6 @@ export class SiakWarMachine {
                         console.log(`[${this.#id}] Reattempting to log in...`);
                         this.#emitter.emit("login");
                         break;
-                    case CustomErrorCode.PATTERN_NOT_FOUND:
                     case CustomErrorCode.TOKENS_NOT_FOUND:
                         console.error(err);
                         console.log(
