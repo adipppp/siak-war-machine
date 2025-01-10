@@ -11,6 +11,7 @@ Sebelum menjalankan program, lakukan langkah-langkah berikut:
     ```dotenv
     USERNAME_SSO=<username sso>
     PASSWORD_SSO=<password sso>
+    SIAKNG_HOST=https://academic.ui.ac.id
     ```
 
 3. Sesuaikan `config.json` dengan mata kuliah yang ingin kamu ambil
