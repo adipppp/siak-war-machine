@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
-import { CustomError, CustomErrorCode } from "../errors";
-import { Course } from "../types";
+import { CustomError, CustomErrorCode } from "../../errors";
+import { Course } from "../../types";
 
 export async function getConfig() {
     const filePath = path.join(process.cwd(), "config.json");
@@ -15,22 +15,22 @@ export async function getConfig() {
         if (!course.code) {
             throw new CustomError(
                 CustomErrorCode.INVALID_CONFIG_DATA,
-                `ATTN: class "${course.classId}" at index ${i} doesn't have the "code" property assigned`
+                `ATTN: class "${course.classId}" at index ${i} doesn't have the "code" property assigned`,
             );
         } else if (!course.curriculum) {
             throw new CustomError(
                 CustomErrorCode.INVALID_CONFIG_DATA,
-                `ATTN: class "${course.code}" at index ${i} doesn't have the "curriculum" property assigned`
+                `ATTN: class "${course.code}" at index ${i} doesn't have the "curriculum" property assigned`,
             );
         } else if (!course.classId) {
             throw new CustomError(
                 CustomErrorCode.INVALID_CONFIG_DATA,
-                `ATTN: class "${course.code}" at index ${i} doesn't have the "classId" property assigned`
+                `ATTN: class "${course.code}" at index ${i} doesn't have the "classId" property assigned`,
             );
         } else if (!course.credit) {
             throw new CustomError(
                 CustomErrorCode.INVALID_CONFIG_DATA,
-                `ATTN: class "${course.code}" at index ${i} doesn't have the "classId" property assigned`
+                `ATTN: class "${course.code}" at index ${i} doesn't have the "classId" property assigned`,
             );
         }
     }
