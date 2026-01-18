@@ -4,21 +4,21 @@
     "description": "",
     "main": "dist/index.js",
     "scripts": {
-        "build": "npx tsc",
+        "build": "pnpm tsc",
         "clean": "rimraf dist",
-        "start": "npm run clean && npm run build && node dist/index.js",
+        "start": "node dist/index.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
     "author": "adipppp",
     "license": "ISC",
     "dependencies": {
-        "dotenv": "^16.4.5",
-        "undici": "^6.19.7"
+        "dotenv": "^16.4.5"
     },
     "devDependencies": {
         "@types/node": "^22.4.0",
         "cross-env": "^7.0.3",
+        "prettier": "^3.8.0",
         "rimraf": "^6.0.1",
         "typescript": "^5.5.4"
     }
